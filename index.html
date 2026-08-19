@@ -2,7 +2,7 @@
 <html xml:lang="en" xmlns="http://www.w3.org/1999/xhtml">
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-    <title>HBD love</title>	    
+    <title>HBD love</title>     
     <link type="text/css" rel="stylesheet" href="file/default.css">
     <script type="text/javascript" src="file/jquery.min.js"></script>
     <script type="text/javascript" src="file/jscex.min.js"></script>
@@ -49,7 +49,7 @@
     <script>
     (function() {
         var canvas = $('#canvas');
-		
+        
         if (!canvas[0].getContext) {
             $("#error").show();
             return false;
@@ -167,11 +167,70 @@
         var textAnimate = eval(Jscex.compile("async", function () {
             $("#code").show().typewriter();
         }));
-	    
+
+        // --- ছবিতে দেখানো স্টাইলের ঝরে পড়া পাপড়ি অ্যানিমেশন লজিক ---
+        var ctx = canvas[0].getContext("2d");
+        var fallingPetals = [];
+        var petalColors = ['rgb(255,192,203)', 'rgb(255,105,180)', 'rgb(220,20,60)', 'rgb(190,26,37)'];
+
+        function createFallingPetal() {
+            fallingPetals.push({
+                x: Math.random() * (width - 200) + 100,
+                y: Math.random() * 200 + 100,
+                size: Math.random() * 7 + 5,
+                color: petalColors[Math.floor(Math.random() * petalColors.length)],
+                speedX: Math.random() * 2 - 1,
+                speedY: Math.random() * 1.5 + 1,
+                angle: Math.random() * Math.PI * 2,
+                spin: Math.random() * 0.04 - 0.02,
+                opacity: 0.9
+            });
+        }
+
+        function updateAndDrawPetals() {
+            if (fallingPetals.length < 60) {
+                createFallingPetal();
+            }
+
+            for (var i = fallingPetals.length - 1; i >= 0; i--) {
+                var p = fallingPetals[i];
+                p.x += p.speedX + Math.sin(p.y * 0.02) * 0.5;
+                p.y += p.speedY;
+                p.angle += p.spin;
+
+                if (p.y > height - 30) {
+                    p.opacity -= 0.02;
+                }
+
+                if (p.opacity <= 0 || p.y > height) {
+                    fallingPetals.splice(i, 1);
+                    continue;
+                }
+
+                ctx.save();
+                ctx.translate(p.x, p.y);
+                ctx.rotate(p.angle);
+                ctx.globalAlpha = p.opacity;
+                ctx.fillStyle = p.color;
+                
+                // হার্ট/পাপড়ির আকৃতি
+                ctx.beginPath();
+                ctx.moveTo(0, 0);
+                ctx.bezierCurveTo(-p.size, -p.size, -p.size * 1.5, p.size / 3, 0, p.size * 1.2);
+                ctx.bezierCurveTo(p.size * 1.5, p.size / 3, p.size, -p.size, 0, 0);
+                ctx.fill();
+                ctx.restore();
+            }
+        }
+
         var runAsync = eval(Jscex.compile("async", function () {
             $await(seedAnimate());
             $await(growAnimate());
             $await(flowAnimate());
+            
+            // ফুল ফোটার পর থেকেই অনবরত পাপড়ি খসে পড়া শুরু হবে
+            setInterval(updateAndDrawPetals, 25);
+
             $await(moveAnimate());
             textAnimate().start();
         }));
